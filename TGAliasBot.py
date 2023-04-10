@@ -1,17 +1,15 @@
-import base64
+import configparser
 import html
 import json
 import logging as log
 import os
-import re
 import signal
 import sys
 import time as time_os
 import traceback
 from logging.handlers import RotatingFileHandler
 
-import validators
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CallbackContext, CommandHandler, ContextTypes, Application, AIORateLimiter, MessageHandler, \
 	filters
@@ -105,14 +103,69 @@ def get_version():
 async def chat_check(update: Update, context: CallbackContext):
 	log_bot_event(update, 'chat_check')
 	msg = update.message.text
+	if msg.startswith(c.SLASH) and msg != "/alias":
+		arr = msg.split()
+		cmd = arr[0]
+		config = configparser.RawConfigParser()
+		config.read(c.PROP_FILE)
+		try:
+			val = config.get(c.ALIAS_SECTION, cmd)
+			text = val + c.SPACE + c.SPACE.join(arr[1:])
+			await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+		except configparser.NoOptionError as e:
+			log.info("Alias command not found!")
+			log.error(e)
 
 
-
-async def alias(update: Update, context: CallbackContext, answer_with_error=True, msg=''):
+async def alias(update: Update, context: CallbackContext):
 	log_bot_event(update, 'alias')
-	if msg == '':
-		msg = c.SPACE.join(context.args).strip()
+	msg = c.SPACE.join(context.args).strip()
+	arr = msg.split()
+	config = configparser.RawConfigParser()
+	config.read(c.PROP_FILE)
+	if len(arr) >= 2:
+		old_cmd = arr[0]
+		if not old_cmd.startswith(c.SLASH):
+			old_cmd = c.SLASH + old_cmd
+		new_cmd = arr[1]
+		if not new_cmd.startswith(c.SLASH):
+			new_cmd = c.SLASH + new_cmd
+		config.set(c.ALIAS_SECTION, new_cmd, old_cmd)
+		with open(c.PROP_FILE, c.W) as configfile:
+			config.write(configfile, space_around_delimiters=False)
+			await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ALIAS_CREATED_OR_EDITED_MESSAGE)
+	else:
+		if len(arr) == 0:
+			text = c.EMPTY
+			for (each_key, each_val) in config.items(c.ALIAS_SECTION):
+				text += each_key + " - " + each_val + "\n"
+			await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
+		else:
+			await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ERROR_ALIAS_CREATION)
 
+
+async def delete_alias(update: Update, context: CallbackContext):
+	log_bot_event(update, 'delete_alias')
+	msg = c.SPACE.join(context.args).strip()
+	arr = msg.split()
+	if len(arr) > 0:
+		alias_name = arr[0]
+		if not alias_name.startswith(c.SLASH):
+			alias_name = c.SLASH + alias_name
+		config = configparser.RawConfigParser()
+		config.read(c.PROP_FILE)
+		try:
+			if config.remove_option(c.ALIAS_SECTION, alias_name):
+				with open(c.PROP_FILE, c.W) as configfile:
+					config.write(configfile, space_around_delimiters=False)
+					await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ALIAS_DELETED_MESSAGE)
+			else:
+				await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ERROR_ALIAS_NOT_FOUND)
+		except configparser.NoOptionError as e:
+			log.info("Alias command not found!")
+			log.error(e)
+	else:
+		await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ERROR_ALIAS_DELETION)
 
 
 if __name__ == '__main__':
@@ -128,7 +181,7 @@ if __name__ == '__main__':
 	application.add_handler(CommandHandler('version', send_version))
 	application.add_handler(CommandHandler('shutdown', send_shutdown))
 	application.add_handler(CommandHandler('alias', alias))
-	# application.add_handler(CommandHandler('delete_alias', delete_alias))
+	application.add_handler(CommandHandler('delete_alias', delete_alias))
 	application.add_handler(MessageHandler(filters.TEXT, chat_check))
 	application.add_error_handler(error_handler)
 	application.run_polling(allowed_updates=Update.ALL_TYPES)
