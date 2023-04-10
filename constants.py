@@ -1,8 +1,10 @@
 import configparser
 import logging
 
+PROP_FILE = "config.properties"
 config = configparser.RawConfigParser()
-config.read("config.properties")
+config.read(PROP_FILE)
+ALIAS_SECTION = "alias"
 # application's secrets
 SECRETS = "secrets"
 TOKEN = config.get(SECRETS, "telegram.token")
@@ -27,6 +29,11 @@ STARTUP_MESSAGE = "TGAliasBot started! "
 STOP_MESSAGE = "TGAliasBot stopped!"
 VERSION_MESSAGE = " - more info on https://github.com/simon387/TGAliasBot/blob/master/changelog.txt"
 ERROR_NO_GRANT_SHUTDOWN = "You can't shutdown the bot!"
+ALIAS_CREATED_OR_EDITED_MESSAGE = "Alias created or edited correctly!"
+ERROR_ALIAS_CREATION = "Error on creating a new alias!"
+ALIAS_DELETED_MESSAGE = "Alias deleted correctly"
+ERROR_ALIAS_DELETION = "You need to specify the alias name!"
+ERROR_ALIAS_NOT_FOUND = "Alias not found, delete aborted"
 # urls
 
 # var
@@ -35,3 +42,5 @@ EMPTY = ""
 MP3 = "MP3"
 MP4 = "MP4"
 TRUE = "true"
+W = 'w'
+SLASH = '/'

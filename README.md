@@ -19,6 +19,7 @@ log.level=info
 send.start.and.stop.message=false
 # 1.1 | 2
 http.version=1.1
+[alias]
 ```
 
 ### Setup BotFather
