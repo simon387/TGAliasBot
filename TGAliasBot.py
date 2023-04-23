@@ -14,44 +14,44 @@ from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CallbackContext, CommandHandler, ContextTypes, Application, AIORateLimiter, MessageHandler, \
 	filters
 
-import constants as c
+import Constants
 from BotApp import BotApp
 
 log.basicConfig(
 	handlers=[
 		RotatingFileHandler(
-			'TGAliasBot.log',
+			'_TGAliasBot.log',
 			maxBytes=10240000,
 			backupCount=5
 		),
 		log.StreamHandler()
 	],
 	format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-	level=c.LOG_LEVEL
+	level=Constants.LOG_LEVEL
 )
 
 
 async def send_version(update: Update, context: CallbackContext):
 	log_bot_event(update, 'send_version')
-	await context.bot.send_message(chat_id=update.effective_chat.id, text=get_version() + c.VERSION_MESSAGE)
+	await context.bot.send_message(chat_id=update.effective_chat.id, text=get_version() + Constants.VERSION_MESSAGE)
 
 
 async def send_shutdown(update: Update, context: CallbackContext):
 	log_bot_event(update, 'send_shutdown')
-	if update.effective_user.id == int(c.TELEGRAM_DEVELOPER_CHAT_ID):
-		if c.SEND_START_AND_STOP_MESSAGE == c.TRUE:
-			await context.bot.send_message(chat_id=c.TELEGRAM_GROUP_ID, text=c.STOP_MESSAGE, parse_mode=ParseMode.HTML)
+	if update.effective_user.id == int(Constants.TELEGRAM_DEVELOPER_CHAT_ID):
+		if Constants.SEND_START_AND_STOP_MESSAGE == Constants.TRUE:
+			await context.bot.send_message(chat_id=Constants.TELEGRAM_GROUP_ID, text=Constants.STOP_MESSAGE, parse_mode=ParseMode.HTML)
 		os.kill(os.getpid(), signal.SIGINT)
 	else:
-		await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ERROR_NO_GRANT_SHUTDOWN)
+		await context.bot.send_message(chat_id=update.effective_chat.id, text=Constants.ERROR_NO_GRANT_SHUTDOWN)
 
 
 async def post_init(app: Application):
 	version = get_version()
 	log.info("Starting TGAliasBot, " + version)
-	if c.SEND_START_AND_STOP_MESSAGE == 'true':
+	if Constants.SEND_START_AND_STOP_MESSAGE == 'true':
 		# await app.bot.send_message(chat_id=c.TELEGRAM_GROUP_ID, text=c.STARTUP_MESSAGE + version, parse_mode=ParseMode.HTML)
-		await app.bot.send_message(chat_id=c.TELEGRAM_DEVELOPER_CHAT_ID, text=c.STARTUP_MESSAGE + version, parse_mode=ParseMode.HTML)
+		await app.bot.send_message(chat_id=Constants.TELEGRAM_DEVELOPER_CHAT_ID, text=Constants.STARTUP_MESSAGE + version, parse_mode=ParseMode.HTML)
 
 
 async def post_shutdown(app: Application):
@@ -88,7 +88,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
 	if message.count('</pre>') % 2 != 0:
 		message += '</pre>'
 	# Finally, send the message
-	await context.bot.send_message(chat_id=c.TELEGRAM_DEVELOPER_CHAT_ID, text=message, parse_mode=ParseMode.HTML)
+	await context.bot.send_message(chat_id=Constants.TELEGRAM_DEVELOPER_CHAT_ID, text=message, parse_mode=ParseMode.HTML)
 	# Restart the bot
 	time_os.sleep(5.0)
 	os.execl(sys.executable, sys.executable, *sys.argv)
@@ -103,14 +103,14 @@ def get_version():
 async def chat_check(update: Update, context: CallbackContext):
 	log_bot_event(update, 'chat_check')
 	msg = update.message.text
-	if msg.startswith(c.SLASH) and msg != "/alias":
+	if msg.startswith(Constants.SLASH) and msg != "/alias":
 		arr = msg.split()
 		cmd = arr[0]
 		config = configparser.RawConfigParser()
-		config.read(c.PROP_FILE)
+		config.read(Constants.PROP_FILE)
 		try:
-			val = config.get(c.ALIAS_SECTION, cmd)
-			text = val + c.SPACE + c.SPACE.join(arr[1:])
+			val = config.get(Constants.ALIAS_SECTION, cmd)
+			text = val + Constants.SPACE + Constants.SPACE.join(arr[1:])
 			await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 		except configparser.NoOptionError as e:
 			log.info("Alias command not found!")
@@ -119,64 +119,64 @@ async def chat_check(update: Update, context: CallbackContext):
 
 async def alias(update: Update, context: CallbackContext):
 	log_bot_event(update, 'alias')
-	msg = c.SPACE.join(context.args).strip()
+	msg = Constants.SPACE.join(context.args).strip()
 	arr = msg.split()
 	config = configparser.RawConfigParser()
-	config.read(c.PROP_FILE)
+	config.read(Constants.PROP_FILE)
 	if len(arr) >= 2:
 		old_cmd = arr[0]
-		if not old_cmd.startswith(c.SLASH):
-			old_cmd = c.SLASH + old_cmd
+		if not old_cmd.startswith(Constants.SLASH):
+			old_cmd = Constants.SLASH + old_cmd
 		new_cmd = arr[1]
-		if not new_cmd.startswith(c.SLASH):
-			new_cmd = c.SLASH + new_cmd
-		config.set(c.ALIAS_SECTION, new_cmd, old_cmd)
-		with open(c.PROP_FILE, c.W) as configfile:
+		if not new_cmd.startswith(Constants.SLASH):
+			new_cmd = Constants.SLASH + new_cmd
+		config.set(Constants.ALIAS_SECTION, new_cmd, old_cmd)
+		with open(Constants.PROP_FILE, Constants.W) as configfile:
 			config.write(configfile, space_around_delimiters=False)
-			await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ALIAS_CREATED_OR_EDITED_MESSAGE)
+			await context.bot.send_message(chat_id=update.effective_chat.id, text=Constants.ALIAS_CREATED_OR_EDITED_MESSAGE)
 	else:
 		if len(arr) == 0:
-			text = c.EMPTY
-			for (each_key, each_val) in config.items(c.ALIAS_SECTION):
+			text = Constants.EMPTY
+			for (each_key, each_val) in config.items(Constants.ALIAS_SECTION):
 				text += each_key + " - " + each_val + "\n"
 			await context.bot.send_message(chat_id=update.effective_chat.id, text=text)
 		else:
-			await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ERROR_ALIAS_CREATION)
+			await context.bot.send_message(chat_id=update.effective_chat.id, text=Constants.ERROR_ALIAS_CREATION)
 
 
 async def delete_alias(update: Update, context: CallbackContext):
 	log_bot_event(update, 'delete_alias')
-	msg = c.SPACE.join(context.args).strip()
+	msg = Constants.SPACE.join(context.args).strip()
 	arr = msg.split()
 	if len(arr) > 0:
 		alias_name = arr[0]
-		if not alias_name.startswith(c.SLASH):
-			alias_name = c.SLASH + alias_name
+		if not alias_name.startswith(Constants.SLASH):
+			alias_name = Constants.SLASH + alias_name
 		config = configparser.RawConfigParser()
-		config.read(c.PROP_FILE)
+		config.read(Constants.PROP_FILE)
 		try:
-			if config.remove_option(c.ALIAS_SECTION, alias_name):
-				with open(c.PROP_FILE, c.W) as configfile:
+			if config.remove_option(Constants.ALIAS_SECTION, alias_name):
+				with open(Constants.PROP_FILE, Constants.W) as configfile:
 					config.write(configfile, space_around_delimiters=False)
-					await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ALIAS_DELETED_MESSAGE)
+					await context.bot.send_message(chat_id=update.effective_chat.id, text=Constants.ALIAS_DELETED_MESSAGE)
 			else:
-				await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ERROR_ALIAS_NOT_FOUND)
+				await context.bot.send_message(chat_id=update.effective_chat.id, text=Constants.ERROR_ALIAS_NOT_FOUND)
 		except configparser.NoOptionError as e:
 			log.info("Alias command not found!")
 			log.error(e)
 	else:
-		await context.bot.send_message(chat_id=update.effective_chat.id, text=c.ERROR_ALIAS_DELETION)
+		await context.bot.send_message(chat_id=update.effective_chat.id, text=Constants.ERROR_ALIAS_DELETION)
 
 
 if __name__ == '__main__':
 	application = ApplicationBuilder() \
-		.token(c.TOKEN) \
+		.token(Constants.TOKEN) \
 		.application_class(BotApp) \
 		.post_init(post_init) \
 		.post_shutdown(post_shutdown) \
-		.rate_limiter(AIORateLimiter(max_retries=c.AIO_RATE_LIMITER_MAX_RETRIES)) \
-		.http_version(c.HTTP_VERSION) \
-		.get_updates_http_version(c.HTTP_VERSION) \
+		.rate_limiter(AIORateLimiter(max_retries=Constants.AIO_RATE_LIMITER_MAX_RETRIES)) \
+		.http_version(Constants.HTTP_VERSION) \
+		.get_updates_http_version(Constants.HTTP_VERSION) \
 		.build()
 	application.add_handler(CommandHandler('version', send_version))
 	application.add_handler(CommandHandler('shutdown', send_shutdown))
